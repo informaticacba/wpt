@@ -226,7 +226,10 @@
     };
 
     self.start_window = async function() {
-        let uuid = self.test_driver_internal._get_context_id(self);
+        let uuid = new URLSearchParams(location.search).get("uuid");
+        if (!uuid) {
+            throw new Error("URL must have a uuid parameter to use as a RemoteWindow");
+        }
         let channel = new RemoteWindowCommandRecvChannel(new RecvChannel(uuid));
         await channel.connect();
         return channel;
@@ -256,7 +259,8 @@
         async handleMessage(msg) {
             console.log(this.uuid, "handleMessage", msg);
             const {id, command, params, respChannel} = msg;
-            let resp;
+            let result = {};
+            let resp = {id, result};
             if (command === "executeScript") {
                 const fnString = params.fn.value;
                 const args = params.args.map(x => {
@@ -272,34 +276,29 @@ Promise.resolve(result).then(callback);`;
                     const fn = new Function("args", "callback", body);
                     fn(args, value => resolve(value));
                 });
-                let result, exceptionDetails;
                 try {
-                    result = serialize(await value);
+                    result.result = serialize(await value);
                 } catch(e) {
-                    result = serialize(e);
+                    let exception = serialize(e);
                     const getAsInt = (obj, prop) =>  {
                         let value = parseInt(prop in obj ? obj[prop] : 0);
                         return Number.isNaN(value) ? 0 : value;
                     };
-                    exceptionDetails = {
+                    result.exceptionDetails = {
                         text: "" + e.toString(),
                         lineNumber: getAsInt(e, "lineNumber"),
                         columnNumber: getAsInt(e, "columnNumber"),
+                        exception
                     };
-                }
-                resp = {result};
-                if (exceptionDetails) {
-                    resp(exceptionDetails) = exceptionDetails;
                 }
             } else if (command === "postMessage") {
                 this.messageHandlers.forEach(fn => fn(params.msg));
             }
-            console.log("result", result);
             if (respChannel) {
                 let chan = deserialize(respChannel);
                 await chan.connect();
-                console.log("Sending result");
-                await chan.send({id, result});
+                console.log(this.uuid, `Sending response to ${chan.uuid}`, resp);
+                await chan.send(resp);
             }
         }
 
@@ -403,9 +402,11 @@ Promise.resolve(result).then(callback);`;
         }
 
         async executeScript(fn, ...args) {
-            let resp = await this._executeScript(fn, args, true);
-            let value = deserialize(resp);
-            return value;
+            let result = await this._executeScript(fn, args, true);
+            if (result.exceptionDetails) {
+                throw deserialize(result.exceptionDetails.exception.toLocal());
+            }
+            return deserialize(result.result);
         }
 
         async executeScriptNoResult(fn, ...args) {
@@ -494,7 +495,6 @@ Promise.resolve(result).then(callback);`;
     }
 
     function serialize(obj) {
-        console.log("serialize", obj);
         const stack = [{item: obj}];
         let serialized = null;
 
@@ -615,7 +615,7 @@ Promise.resolve(result).then(callback);`;
                 if (Array.isArray(target)) {
                     target.push(result);
                 } else {
-                    target[targetKey] = target;
+                    target[targetKey] = result;
                 }
             }
         }
@@ -715,7 +715,7 @@ Promise.resolve(result).then(callback);`;
             } else if (Array.isArray(target)) {
                 target.push(result);
             } else {
-                target[0][target[1]] = value;
+                target[targetKey] = value;
             }
         }
         return deserialized;
