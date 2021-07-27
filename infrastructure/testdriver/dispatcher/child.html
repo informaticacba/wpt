@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>TestDriver send/recv child</title>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script>
+  async function run() {
+      let data = await test_driver.recv();
+      console.log("Got data", data);
+      let testContext = new test_driver.RemoteContext(data.src);
+  
+      let result = "FAIL";
+      if (data.data == "message") {
+          result = "PASS";
+      }
+      console.log("Sending result", result);
+      testContext.send(result);
+  };
+  run();
+</script>

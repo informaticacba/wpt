@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>TestDriver send/recv</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script>
+setup({single_test: true})
+onload = async () => {
+    let uuid = "{{uuid()}}";
+    let url = "https://{{host}}:{{ports[https][0]}}/infrastructure/testdriver/dispatcher/child.html?uuid=" + uuid;
+    let remote = new test_driver.RemoteContext(uuid);
+    win = window.open(url, "_blank", "noopener");
+    let content;
+    await remote.send("message");
+    let data = await test_driver.recv();
+    assert_equals(data.src, uuid);
+    assert_equals(data.data, "PASS")
+    done();
+}
+</script>
