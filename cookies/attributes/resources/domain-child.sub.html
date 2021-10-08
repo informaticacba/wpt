@@ -310,8 +310,8 @@
         },
         {
           cookie: `test=42; domain=${www1Host}; domain=`,
-          expected: "",
-          name: "No cookie returned for domain mismatch (with domain mismatch as first domain attribute and second a bare attribute)",
+          expected: "test=42",
+          name: "Cookie returned for bare domain attribute following mismatched domain attribute (after redirect to same-origin page).",
           location: `http://${wwwHost}:${port}/cookies/attributes/resources/path.html`,
         },
         {
@@ -330,6 +330,30 @@
           cookie: [`test=not45; domain=.${wwwHost}`, `test=45; domain=${wwwHost}`],
           expected: "test=45",
           name: "Cookies with same name, path, and domain (differing only in leading '.') overwrite each other ('.' first)",
+          location: `http://${wwwHost}:${port}/cookies/attributes/resources/path.html`,
+        },
+        {
+          cookie: `test=46; domain=.`,
+          expected: "",
+          name: "No cookie returned for domain=.",
+          location: `http://${wwwHost}:${port}/cookies/attributes/resources/path.html`,
+        },
+        {
+          cookie: ["test=47", `test=47b; domain=${host}`,`test=47b; domain=${www1Host}; domain=`],
+          expected: "test=47b; test=47b",
+          name: "Empty domain treated as host cookie 1",
+          location: `http://${wwwHost}:${port}/cookies/attributes/resources/path.html`,
+        },
+        {
+          cookie: ["test=48", `test=48b; domain=${host}`,`test=48b; domain=${host}; domain=`],
+          expected: "test=48b; test=48b",
+          name: "Empty domain treated as host cookie 2",
+          location: `http://${wwwHost}:${port}/cookies/attributes/resources/path.html`,
+        },
+        {
+          cookie: ["test=49", `test=49b; domain=${host}`,`test=49b; domain=`],
+          expected: "test=49b; test=49b",
+          name: "Empty domain treated as host cookie 3",
           location: `http://${wwwHost}:${port}/cookies/attributes/resources/path.html`,
         },
       ];
