@@ -1,2 +1,2 @@
-aioquic==0.9.15
+aioquic==0.9.20
 mozprocess==1.3.0
